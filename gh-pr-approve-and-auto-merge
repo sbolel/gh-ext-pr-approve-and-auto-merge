@@ -12,6 +12,7 @@ Examples:
   gh pr approve-and-auto-merge 123 124 125
   gh pr approve-and-auto-merge 123,124,125 --dry-run
   gh pr approve-and-auto-merge 42 --run --yes
+  # merges are performed with --squash
 Options:
   -h, --help        Show help
   -n, --dry-run     Preview only (default)
@@ -25,6 +26,7 @@ EOF
 DRY_RUN=true
 SKIP_CONFIRM=false
 LOG_FILE="${HOME}/.gh_auto_merge.log"
+MERGE_METHOD="squash"
 PR_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -46,6 +48,7 @@ if [[ ${#PR_ARGS[@]} -eq 0 ]]; then
   _usage
   exit 1
 fi
+
 
 # allow comma-separated lists, too
 IFS=',' read -r -a PR_LIST <<<"${PR_ARGS[*]}"
@@ -91,10 +94,10 @@ for pr in "${PR_LIST[@]}"; do
   fi
 
   if $DRY_RUN; then
-    echo "🔎 (dry-run) Would approve & merge #$pr"
+    echo "🔎 (dry-run) Would approve & $MERGE_METHOD #$pr"
   else
     gh pr review "$pr" --approve --body "LGTM – auto-approved by gh extension"
-    gh pr merge  "$pr" --merge --auto --delete-branch --body "Auto-merged by gh extension"
+    gh pr merge  "$pr" --$MERGE_METHOD --auto --delete-branch --body "Auto-merged ($MERGE_METHOD) by gh extension"
     echo "✅  Merged #$pr" | tee -a "$LOG_FILE"
   fi
 done
