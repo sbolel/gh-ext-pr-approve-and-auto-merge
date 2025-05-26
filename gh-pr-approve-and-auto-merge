@@ -11,9 +11,11 @@ Usage:
 Examples:
   gh pr approve-and-auto-merge 123 124 125
   gh pr approve-and-auto-merge 123,124,125 --dry-run
+  gh pr approve-and-auto-merge 123 --run
 Options:
   -h, --help        Show help
   -n, --dry-run     Preview only (default)
+  --run             Actually approve and merge PRs
   --log-file <p>    Custom log file (default ~/.gh_auto_merge.log)
 EOF
 }
@@ -27,6 +29,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) _usage; exit 0 ;;
     -n|--dry-run) DRY_RUN=true ;;
+    --run|--force) DRY_RUN=false ;;
     --log-file) shift; LOG_FILE=$1 ;;
     *) PR_ARGS+=("$1") ;;
   esac
@@ -52,8 +55,13 @@ fi
 
 echo "🔍  Will process PRs: ${PR_LIST[*]}"
 echo "    dry-run=${DRY_RUN}  log=${LOG_FILE}"
-read -p $'Proceed? [Y/n] ' CONFIRM
-CONFIRM=${CONFIRM:-Y}
+if $DRY_RUN; then
+  read -p $'Proceed with dry-run? [Y/n] ' CONFIRM
+  CONFIRM=${CONFIRM:-Y}
+else
+  read -p $'RUN MODE - approve & merge PRs. Continue? [y/N] ' CONFIRM
+  CONFIRM=${CONFIRM:-N}
+fi
 [[ ! $CONFIRM =~ ^[Yy]$ ]] && { echo "Aborted."; exit 1; }
 
 # ───────── core logic (simplified) ────
