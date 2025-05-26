@@ -4,7 +4,7 @@ set -euo pipefail
 # ───────── helper: show help ─────────
 _usage() {
   cat <<'EOF'
-gh pr approve-and-auto-merge – approve & auto-merge dependency PRs
+gh pr approve-and-auto-merge - approve & auto-merge dependency PRs
 
 Usage:
   gh pr approve-and-auto-merge [options] <pr_numbers>
@@ -15,7 +15,7 @@ Examples:
 Options:
   -h, --help        Show help
   -n, --dry-run     Preview only (default)
-  --run             Execute approvals and merges
+  -r, --run         Approve and merge (disables --dry-run)
   -y, --yes         Skip confirmation prompt
   --log-file <p>    Custom log file (default ~/.gh_auto_merge.log)
 EOF
@@ -31,7 +31,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help) _usage; exit 0 ;;
     -n|--dry-run) DRY_RUN=true ;;
-    --run) DRY_RUN=false ;;
+    -r|--run|--force) DRY_RUN=false ;;
     -y|--yes) SKIP_CONFIRM=true ;;
     --log-file) shift; LOG_FILE=$1 ;;
     *) PR_ARGS+=("$1") ;;
@@ -61,6 +61,9 @@ echo "    dry-run=${DRY_RUN}  log=${LOG_FILE}"
 if ! $SKIP_CONFIRM; then
   read -p $'Proceed? [Y/n] ' CONFIRM
   CONFIRM=${CONFIRM:-Y}
+elif ! $DRY_RUN; then
+  read -p $'Proceed with approval and merge? [y/N] ' CONFIRM
+  CONFIRM=${CONFIRM:-N}
   [[ ! $CONFIRM =~ ^[Yy]$ ]] && { echo "Aborted."; exit 1; }
 fi
 
