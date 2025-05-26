@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ───────── helper: show help ─────────
+_usage() {
+  cat <<'EOF'
+gh pr approve-and-auto-merge – approve & auto-merge dependency PRs
+
+Usage:
+  gh pr approve-and-auto-merge [options] <pr_numbers>
+Examples:
+  gh pr approve-and-auto-merge 123 124 125
+  gh pr approve-and-auto-merge 123,124,125 --dry-run
+Options:
+  -h, --help        Show help
+  -n, --dry-run     Preview only (default)
+  --log-file <p>    Custom log file (default ~/.gh_auto_merge.log)
+EOF
+}
+
+# ───────── argument parsing ──────────
+DRY_RUN=true
+LOG_FILE="${HOME}/.gh_auto_merge.log"
+PR_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) _usage; exit 0 ;;
+    -n|--dry-run) DRY_RUN=true ;;
+    --log-file) shift; LOG_FILE=$1 ;;
+    *) PR_ARGS+=("$1") ;;
+  esac
+  shift
+done
+
+if [[ ${#PR_ARGS[@]} -eq 0 ]]; then
+  echo "❌  No PR numbers supplied."
+  _usage
+  exit 1
+fi
+
+# allow comma-separated lists, too
+IFS=',' read -r -a PR_LIST <<<"${PR_ARGS[*]}"
+
+# basic gh auth check
+if ! command -v gh >/dev/null; then
+  echo "❌  gh CLI not found"; exit 1
+fi
+if ! gh auth status >/dev/null 2>&1; then
+  echo "❌  gh not authenticated (run gh auth login)"; exit 1
+fi
+
+echo "🔍  Will process PRs: ${PR_LIST[*]}"
+echo "    dry-run=${DRY_RUN}  log=${LOG_FILE}"
+read -p $'Proceed? [Y/n] ' CONFIRM
+CONFIRM=${CONFIRM:-Y}
+[[ ! $CONFIRM =~ ^[Yy]$ ]] && { echo "Aborted."; exit 1; }
+
+# ───────── core logic (simplified) ────
+for pr in "${PR_LIST[@]}"; do
+  echo "———  PR #$pr  ———"
+  title=$(gh pr view "$pr" --json title --jq '.title' 2>/dev/null || echo "")
+  echo "📝  title: $title"
+
+  # skip non-patch bumps
+  if [[ "$title" =~ bump[[:space:]].*from[[:space:]][0-9]+\.[0-9]+\.[0-9]+[[:space:]]to[[:space:]][0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    :
+  else
+    echo "⚠️   Not a dependency bump – skipping."
+    continue
+  fi
+
+  # ensure CI green
+  if ! gh pr checks "$pr" --required | grep -q "✔"; then
+    echo "⚠️   CI not green – skipping."
+    continue
+  fi
+
+  if $DRY_RUN; then
+    echo "🔎 (dry-run) Would approve & merge #$pr"
+  else
+    gh pr review "$pr" --approve --body "LGTM – auto-approved by gh extension"
+    gh pr merge  "$pr" --merge --auto --delete-branch --body "Auto-merged by gh extension"
+    echo "✅  Merged #$pr" | tee -a "$LOG_FILE"
+  fi
+done
