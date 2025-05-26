@@ -42,6 +42,25 @@ fi
 # allow comma-separated lists, too
 IFS=',' read -r -a PR_LIST <<<"${PR_ARGS[*]}"
 
+# ensure the log directory exists
+mkdir -p "$(dirname "$LOG_FILE")"
+
+# filter PR numbers to only digits
+VALID_PR_LIST=()
+for pr in "${PR_LIST[@]}"; do
+  if [[ $pr =~ ^[0-9]+$ ]]; then
+    VALID_PR_LIST+=("$pr")
+  else
+    echo "⚠️   Invalid PR number '$pr' – skipping." >&2
+  fi
+done
+PR_LIST=("${VALID_PR_LIST[@]}")
+
+if [[ ${#PR_LIST[@]} -eq 0 ]]; then
+  echo "❌  No valid PR numbers to process." >&2
+  exit 1
+fi
+
 # basic gh auth check
 if ! command -v gh >/dev/null; then
   echo "❌  gh CLI not found"; exit 1
