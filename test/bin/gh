@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -e
+cmd="$1"; shift || true
+case "$cmd" in
+  auth)
+    [[ "$1" == "status" ]] && exit 0
+    ;;
+  pr)
+    sub="$1"; shift || true
+    case "$sub" in
+      view)
+        pr="$1"
+        if [[ "$pr" == "1" ]]; then
+          echo "Bump dep from 0.1.0 to 0.1.1"
+        elif [[ "$pr" == "3" ]]; then
+          echo "Bump dep from 0.1.0 to 0.1.1"
+        else
+          echo "Update docs"
+        fi
+        ;;
+      checks)
+        pr="$1"
+        if [[ "$pr" == "1" ]]; then
+          echo "✔ CI"
+        elif [[ "$pr" == "3" ]]; then
+          echo "✖ CI"
+        else
+          echo "✔ CI"
+        fi
+        ;;
+      review|merge)
+        exit 0
+        ;;
+    esac
+    ;;
+  *)
+    ;;
+esac
+exit 0
