@@ -39,6 +39,8 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+mkdir -p "$(dirname "$LOG_FILE")"
+
 if [[ ${#PR_ARGS[@]} -eq 0 ]]; then
   echo "❌  No PR numbers supplied."
   _usage
@@ -66,6 +68,10 @@ fi
 
 # ───────── core logic (simplified) ────
 for pr in "${PR_LIST[@]}"; do
+  if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
+    echo "⚠️   Invalid PR number '$pr' – skipping."
+    continue
+  fi
   echo "———  PR #$pr  ———"
   title=$(gh pr view "$pr" --json title --jq '.title' 2>/dev/null || echo "")
   echo "📝  title: $title"
