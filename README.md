@@ -34,6 +34,8 @@ gh pr approve-and-auto-merge 123,124,125 --dry-run
 gh pr approve-and-auto-merge 42 --run --yes
 ```
 
+Pull requests are merged using `--squash`.
+
 Run `gh pr approve-and-auto-merge --help` for the full list of options.
 
 ## Running the tests

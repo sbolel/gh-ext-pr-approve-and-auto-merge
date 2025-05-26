@@ -35,7 +35,7 @@ SH
 @test "default dry run" {
   run $BATS_TEST_DIRNAME/../gh-pr-approve-and-auto-merge 42 --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"(dry-run) Would approve & merge #42"* ]]
+  [[ "$output" == *"(dry-run) Would approve & squash #42"* ]]
   ! grep -q "pr merge" "$GH_STUB_LOG"
 }
 
@@ -45,6 +45,7 @@ SH
   [ "$status" -eq 0 ]
   grep -q "pr review 42" "$GH_STUB_LOG"
   grep -q "pr merge 42" "$GH_STUB_LOG"
+  grep -q "--squash" "$GH_STUB_LOG"
   grep -q "Merged #42" "$log"
 }
 
@@ -75,5 +76,7 @@ SH
   run $BATS_TEST_DIRNAME/../gh-pr-approve-and-auto-merge 42 --run --yes --log-file "$logfile"
   [ "$status" -eq 0 ]
   grep -q "pr merge 42" "$GH_STUB_LOG"
+  grep -q "--squash" "$GH_STUB_LOG"
   grep -q "Merged #42" "$logfile"
 }
+
