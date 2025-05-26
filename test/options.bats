@@ -61,3 +61,19 @@ SH
   [[ "$output" == *"CI not green"* ]]
   ! grep -q "pr merge" "$GH_STUB_LOG"
 }
+
+@test "warns and skips invalid PR numbers" {
+  run $BATS_TEST_DIRNAME/../gh-pr-approve-and-auto-merge 1a2b --run --yes
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Invalid PR number"* ]]
+  ! grep -q "pr view" "$GH_STUB_LOG"
+}
+
+@test "creates log directory" {
+  logdir="$BATS_TEST_TMPDIR/sub/dir"
+  logfile="$logdir/out.log"
+  run $BATS_TEST_DIRNAME/../gh-pr-approve-and-auto-merge 42 --run --yes --log-file "$logfile"
+  [ "$status" -eq 0 ]
+  grep -q "pr merge 42" "$GH_STUB_LOG"
+  grep -q "Merged #42" "$logfile"
+}
